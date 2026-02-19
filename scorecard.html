@@ -612,16 +612,17 @@
      actual Firebase project config after setup.
   ══════════════════════════════════════════════ */
   const FIREBASE_CONFIG = {
-    apiKey:            "PASTE_YOUR_API_KEY_HERE",
-    authDomain:        "PASTE_YOUR_PROJECT_ID.firebaseapp.com",
-    databaseURL:       "https://PASTE_YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-    projectId:         "PASTE_YOUR_PROJECT_ID",
-    storageBucket:     "PASTE_YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "PASTE_YOUR_SENDER_ID",
-    appId:             "PASTE_YOUR_APP_ID"
+  apiKey: "AIzaSyBVX6V0jflzpfVMkNXf8kjDuNJx9MTaQz4",
+  authDomain: "a-place-for-all-my-books.firebaseapp.com",
+  databaseURL: "https://a-place-for-all-my-books-default-rtdb.firebaseio.com",
+  projectId: "a-place-for-all-my-books",
+  storageBucket: "a-place-for-all-my-books.firebasestorage.app",
+  messagingSenderId: "809497164382",
+  appId: "1:809497164382:web:c0c01b9b032bfd261992cf",
+  measurementId: "G-7K3YB3WQV5"
   };
 
-  const FIREBASE_READY = !FIREBASE_CONFIG.apiKey.includes('PASTE');
+  const FIREBASE_READY = !FIREBASE_CONFIG.apiKey.includes('AIzaSyBVX6V0jflzpfVMkNXf8kjDuNJx9MTaQz4');
 
   let db = null;
   if (FIREBASE_READY) {
