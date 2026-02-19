@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>A Place for All My Books — Scorecard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --green-dark:  #2A5425;
+      --green-mid:   #3D7A37;
+      --green-light: #6AAD63;
+      --cream:       #F8F0DC;
+      --cream-dark:  #E8DAC0;
+      --amber:       #C4820A;
+      --text-dark:   #1E2D1B;
+      --text-mid:    #4A5A47;
+      --text-light:  #8A9A87;
+      --shadow:      rgba(42,84,37,.12);
+      --col-green:   #3D7A37;
+      --col-blue:    #2563EB;
+      --col-red:     #DC2626;
+      --col-yellow:  #D97706;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--cream);
+      color: var(--text-dark);
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+      max-width: 480px;
+      margin: 0 auto;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── Shared ── */
+    .screen { display: none; flex-direction: column; min-height: 100vh; }
+    .screen.active { display: flex; }
+
+    /* ════════════════════════════════════════
+       SCREEN 1 — Name & Color
+    ════════════════════════════════════════ */
+    #s1 { align-items: center; justify-content: center; padding: 32px 24px; text-align: center; }
+
+    .logo-book { font-size: 48px; line-height: 1; margin-bottom: 12px; }
+    .game-title {
+      font-family: 'Lora', serif;
+      font-size: 26px; font-weight: 700;
+      color: var(--green-dark); line-height: 1.2; margin-bottom: 4px;
+    }
+    .game-tagline {
+      font-family: 'Lora', serif;
+      font-style: italic; color: var(--text-light); font-size: 13px; margin-bottom: 36px;
+    }
+    .setup-card {
+      background: white; border-radius: 22px;
+      padding: 28px 24px 24px;
+      box-shadow: 0 6px 32px var(--shadow);
+      width: 100%; max-width: 360px;
+    }
+    .setup-card h2 { font-family: 'Lora', serif; font-size: 18px; color: var(--green-dark); margin-bottom: 22px; }
+    .form-group { margin-bottom: 22px; text-align: left; }
+    .form-label {
+      display: block; font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .09em;
+      color: var(--text-light); margin-bottom: 8px;
+    }
+    .text-input {
+      width: 100%; padding: 13px 16px;
+      border: 2px solid var(--cream-dark); border-radius: 12px;
+      font-size: 16px; font-family: 'Inter', sans-serif;
+      color: var(--text-dark); background: var(--cream);
+      outline: none; transition: border-color .2s;
+    }
+    .text-input:focus { border-color: var(--green-mid); }
+    .color-row { display: flex; gap: 12px; }
+    .color-btn {
+      width: 46px; height: 46px; border-radius: 50%;
+      border: 3px solid transparent; cursor: pointer; transition: all .18s; outline: none;
+    }
+    .color-btn.green  { background: var(--col-green); }
+    .color-btn.blue   { background: var(--col-blue); }
+    .color-btn.red    { background: var(--col-red); }
+    .color-btn.yellow { background: var(--col-yellow); }
+    .color-btn.green.selected  { box-shadow: 0 0 0 3px white, 0 0 0 5px var(--col-green); }
+    .color-btn.blue.selected   { box-shadow: 0 0 0 3px white, 0 0 0 5px var(--col-blue); }
+    .color-btn.red.selected    { box-shadow: 0 0 0 3px white, 0 0 0 5px var(--col-red); }
+    .color-btn.yellow.selected { box-shadow: 0 0 0 3px white, 0 0 0 5px var(--col-yellow); }
+    .next-btn, .start-btn {
+      width: 100%; padding: 15px;
+      background: var(--green-dark); color: white;
+      border: none; border-radius: 14px;
+      font-size: 16px; font-weight: 600; font-family: 'Lora', serif;
+      cursor: pointer; transition: background .2s; margin-top: 4px;
+    }
+    .next-btn:active, .start-btn:active { background: var(--green-mid); }
+
+    /* ════════════════════════════════════════
+       SCREEN 2 — Game Room
+    ════════════════════════════════════════ */
+    #s2 { align-items: center; justify-content: center; padding: 32px 24px; text-align: center; }
+
+    .room-card {
+      background: white; border-radius: 22px;
+      padding: 28px 24px 24px;
+      box-shadow: 0 6px 32px var(--shadow);
+      width: 100%; max-width: 360px;
+    }
+    .room-card h2 { font-family: 'Lora', serif; font-size: 18px; color: var(--green-dark); margin-bottom: 6px; }
+    .room-subtitle { font-size: 13px; color: var(--text-light); margin-bottom: 24px; }
+
+    .room-generate-btn {
+      width: 100%; padding: 18px;
+      background: var(--green-dark); color: white;
+      border: none; border-radius: 14px;
+      font-size: 18px; font-weight: 700; font-family: 'Lora', serif;
+      cursor: pointer; transition: background .2s;
+      letter-spacing: .05em;
+    }
+    .room-generate-btn:active { background: var(--green-mid); }
+    .room-code-display {
+      margin-top: 12px;
+      padding: 16px;
+      background: var(--cream);
+      border-radius: 12px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .room-code-display.visible { display: flex; }
+    .rcd-label { font-size: 11px; color: var(--text-light); text-transform: uppercase; letter-spacing: .08em; }
+    .rcd-code { font-family: 'Lora', serif; font-size: 32px; font-weight: 700; color: var(--green-dark); letter-spacing: .12em; }
+    .rcd-hint { font-size: 12px; color: var(--text-mid); }
+
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 20px 0; color: var(--text-light); font-size: 12px;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--cream-dark);
+    }
+
+    .join-row { display: flex; gap: 8px; }
+    .join-input {
+      flex: 1; padding: 13px 16px;
+      border: 2px solid var(--cream-dark); border-radius: 12px;
+      font-size: 16px; font-family: 'Lora', serif; font-weight: 700;
+      color: var(--text-dark); background: var(--cream);
+      text-transform: uppercase; letter-spacing: .1em;
+      outline: none; transition: border-color .2s;
+    }
+    .join-input:focus { border-color: var(--green-mid); }
+    .join-btn {
+      padding: 13px 18px;
+      background: var(--green-dark); color: white;
+      border: none; border-radius: 12px;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: background .2s;
+    }
+    .join-btn:active { background: var(--green-mid); }
+
+    .no-firebase-note {
+      margin-top: 20px; padding: 12px 14px;
+      background: rgba(196,130,10,.1); border-radius: 10px;
+      border-left: 3px solid var(--amber);
+      font-size: 12px; color: var(--amber); text-align: left;
+      display: none;
+    }
+    .no-firebase-note.visible { display: block; }
+
+    .back-link {
+      margin-top: 16px;
+      background: transparent; border: none;
+      color: var(--text-light); font-size: 13px;
+      cursor: pointer; font-family: 'Inter', sans-serif;
+    }
+
+    /* ════════════════════════════════════════
+       SCREEN 3 — Scorecard
+    ════════════════════════════════════════ */
+    #s3 { padding-bottom: 96px; }
+
+    .sc-header {
+      background: var(--green-dark); color: white;
+      padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .hdr-left { display: flex; align-items: center; gap: 10px; }
+    .player-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.35);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 700; font-family: 'Lora', serif;
+      color: white; flex-shrink: 0;
+    }
+    .hdr-name { font-family: 'Lora', serif; font-size: 14px; font-weight: 600; }
+    .hdr-room-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,.15);
+      border-radius: 20px; padding: 2px 8px 2px 6px;
+      font-size: 11px; margin-top: 2px;
+    }
+    .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green-light); }
+    .sync-dot.syncing { animation: pulse .8s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .hdr-right { text-align: right; }
+    .hdr-vp-label { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; opacity: .7; }
+    .hdr-vp-value { font-family: 'Lora', serif; font-size: 26px; font-weight: 700; line-height: 1; }
+
+    .section { margin: 14px 14px 0; }
+    .card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 14px var(--shadow); }
+    .card-head {
+      padding: 14px 18px 12px;
+      border-bottom: 1px solid var(--cream-dark);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-head-left { display: flex; align-items: center; gap: 10px; }
+    .card-icon { font-size: 22px; line-height: 1; }
+    .card-title { font-family: 'Lora', serif; font-size: 15px; font-weight: 600; color: var(--text-dark); }
+    .card-rule { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+    .card-vp { text-align: right; }
+    .card-vp-label { font-size: 10px; color: var(--text-light); }
+    .card-vp-value { font-family: 'Lora', serif; font-size: 22px; font-weight: 700; color: var(--green-dark); line-height: 1; }
+
+    .counter-row {
+      padding: 14px 18px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .counter-label { font-size: 14px; color: var(--text-mid); }
+    .counter-btns { display: flex; align-items: center; gap: 14px; }
+    .cnt-btn {
+      width: 38px; height: 38px; border-radius: 50%;
+      border: 2px solid var(--cream-dark); background: var(--cream);
+      font-size: 22px; line-height: 1; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--green-dark); font-weight: 700;
+      transition: all .14s; user-select: none;
+    }
+    .cnt-btn:active { background: var(--green-dark); color: white; border-color: var(--green-dark); transform: scale(.92); }
+    .cnt-value { font-family: 'Lora', serif; font-size: 26px; font-weight: 700; color: var(--text-dark); min-width: 38px; text-align: center; }
+
+    /* Neat stuff */
+    .card-list { padding: 0 18px; }
+    .neat-item { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--cream-dark); }
+    .neat-item:last-child { border-bottom: none; }
+    .neat-name { flex: 1; font-size: 14px; color: var(--text-dark); }
+    .neat-vp { font-family: 'Lora', serif; font-weight: 700; color: var(--green-dark); font-size: 15px; min-width: 32px; text-align: right; }
+    .remove-btn {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: none; background: #FEE2E2; color: #DC2626;
+      cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .add-card-form { padding: 12px 18px; background: var(--cream); display: none; flex-direction: column; gap: 9px; }
+    .add-card-form.open { display: flex; }
+    .form-row { display: flex; gap: 8px; }
+    .name-input {
+      flex: 1; padding: 11px 14px;
+      border: 2px solid var(--cream-dark); border-radius: 10px;
+      font-size: 14px; font-family: 'Inter', sans-serif;
+      background: white; outline: none; transition: border-color .2s;
+    }
+    .name-input:focus { border-color: var(--green-mid); }
+    .vp-input {
+      width: 68px; padding: 11px 10px;
+      border: 2px solid var(--cream-dark); border-radius: 10px;
+      font-size: 15px; font-family: 'Lora', serif; font-weight: 700;
+      text-align: center; background: white; outline: none; transition: border-color .2s;
+    }
+    .vp-input:focus { border-color: var(--green-mid); }
+    .form-btns { display: flex; gap: 8px; }
+    .confirm-btn {
+      flex: 1; padding: 11px;
+      background: var(--green-dark); color: white;
+      border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif;
+    }
+    .cancel-btn { padding: 11px 18px; background: var(--cream-dark); color: var(--text-mid); border: none; border-radius: 10px; font-size: 14px; cursor: pointer; font-family: 'Inter', sans-serif; }
+    .add-card-trigger {
+      margin: 6px 18px 16px; width: calc(100% - 36px);
+      padding: 11px; border: 2px dashed var(--cream-dark);
+      border-radius: 11px; background: transparent; color: var(--text-light);
+      font-size: 13px; cursor: pointer; font-family: 'Inter', sans-serif; text-align: center; transition: all .2s;
+    }
+    .add-card-trigger:hover { border-color: var(--green-mid); color: var(--green-dark); }
+
+    /* Major Accomplishments */
+    .ma-list { padding: 4px 18px 16px; }
+    .ma-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--cream-dark); }
+    .ma-item:last-child { border-bottom: none; }
+    .ma-label { font-size: 13px; color: var(--text-mid); }
+    .ma-input {
+      width: 66px; padding: 9px 10px;
+      border: 2px solid var(--cream-dark); border-radius: 9px;
+      font-size: 16px; font-family: 'Lora', serif; font-weight: 700;
+      text-align: center; background: var(--cream); color: var(--text-dark);
+      outline: none; transition: border-color .2s;
+    }
+    .ma-input:focus { border-color: var(--green-mid); }
+
+    /* Social Battery */
+    .battery-body { padding: 14px 18px 18px; }
+    .battery-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .battery-lbl { font-size: 13px; color: var(--text-mid); }
+    .battery-stepper { display: flex; align-items: center; gap: 12px; }
+    .battery-val { font-family: 'Lora', serif; font-size: 24px; font-weight: 700; color: var(--text-dark); min-width: 36px; text-align: center; }
+    .pip-grid { display: grid; grid-template-columns: repeat(10,1fr); gap: 5px; margin-bottom: 10px; }
+    .pip { aspect-ratio: 1; border-radius: 50%; background: var(--cream-dark); transition: background .12s; cursor: pointer; }
+    .pip.on { background: var(--green-mid); }
+    .battery-note { font-size: 12px; color: var(--text-light); }
+
+    /* Tiebreaker */
+    .tb-banner { margin: 14px 14px 0; padding: 12px 16px; background: rgba(196,130,10,.1); border-radius: 12px; border-left: 3px solid var(--amber); }
+    .tb-banner strong { display: block; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--amber); margin-bottom: 2px; }
+    .tb-banner p { font-size: 12px; color: var(--amber); }
+
+    /* Bottom bar */
+    #bottomBar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      max-width: 480px; margin: 0 auto;
+      background: white; border-top: 1px solid var(--cream-dark);
+      padding: 10px 14px max(16px,env(safe-area-inset-bottom));
+      box-shadow: 0 -4px 20px rgba(0,0,0,.07);
+      display: none; gap: 8px;
+    }
+    .bar-btn {
+      flex: 1; padding: 12px 8px;
+      border: 2px solid var(--cream-dark); border-radius: 12px;
+      background: var(--cream); color: var(--text-mid);
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      font-family: 'Inter', sans-serif; text-align: center; transition: all .15s;
+    }
+    .bar-btn:active { background: var(--cream-dark); }
+    .total-chip {
+      background: var(--green-dark); color: white;
+      border-radius: 12px; padding: 10px 18px;
+      text-align: center; min-width: 100px;
+    }
+    .total-chip-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; opacity: .75; }
+    .total-chip-val { font-family: 'Lora', serif; font-size: 28px; font-weight: 700; line-height: 1; }
+
+    /* Breakdown sheet */
+    #breakdownOverlay { position: fixed; inset: 0; background: rgba(0,0,0,.38); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
+    #breakdownOverlay.open { display: flex; }
+    .sheet { background: white; border-radius: 24px 24px 0 0; padding: 20px 24px max(32px,env(safe-area-inset-bottom)); width: 100%; max-width: 480px; animation: slideUp .25s ease; }
+    @keyframes slideUp { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
+    .sheet-handle { width: 38px; height: 4px; background: var(--cream-dark); border-radius: 2px; margin: 0 auto 18px; }
+    .sheet-title { font-family: 'Lora', serif; font-size: 20px; font-weight: 700; color: var(--text-dark); text-align: center; margin-bottom: 18px; }
+    .bd-row { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--cream-dark); }
+    .bd-row:last-of-type { border-bottom: none; }
+    .bd-icon { font-size: 20px; margin-right: 12px; }
+    .bd-name { flex: 1; font-size: 14px; color: var(--text-mid); }
+    .bd-val { font-family: 'Lora', serif; font-size: 18px; font-weight: 700; color: var(--green-dark); }
+    .bd-total-strip { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--green-dark); border-radius: 14px; margin-top: 14px; }
+    .bd-total-name { font-family: 'Lora', serif; font-size: 15px; font-weight: 600; color: white; }
+    .bd-total-val { font-family: 'Lora', serif; font-size: 28px; font-weight: 700; color: white; }
+    .share-btn { width: 100%; margin-top: 14px; padding: 14px; background: var(--amber); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; }
+    .share-btn:active { background: #A86D09; }
+    .reset-link { display: block; width: 100%; margin-top: 8px; padding: 12px; background: transparent; color: var(--text-light); border: none; border-radius: 12px; font-size: 13px; cursor: pointer; font-family: 'Inter', sans-serif; text-align: center; }
+
+    /* Toast */
+    #toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-8px); background: var(--text-dark); color: white; padding: 9px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: all .25s; z-index: 500; white-space: nowrap; pointer-events: none; }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════
+     SCREEN 1 — Name & Color
+═══════════════════════════════ -->
+<div id="s1" class="screen active">
+  <div class="logo-book">📚</div>
+  <div class="game-title">A Place for<br>All My Books</div>
+  <div class="game-tagline">Scorecard</div>
+
+  <div class="setup-card">
+    <h2>Who's playing?</h2>
+    <div class="form-group">
+      <label class="form-label">Your Name</label>
+      <input class="text-input" id="nameInput" type="text" placeholder="Enter your name…" maxlength="20" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Player Color</label>
+      <div class="color-row">
+        <button class="color-btn green selected" data-color="green"  onclick="pickColor(this)"></button>
+        <button class="color-btn blue"           data-color="blue"   onclick="pickColor(this)"></button>
+        <button class="color-btn red"            data-color="red"    onclick="pickColor(this)"></button>
+        <button class="color-btn yellow"         data-color="yellow" onclick="pickColor(this)"></button>
+      </div>
+    </div>
+    <button class="next-btn" onclick="goToRoomScreen()">Next →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     SCREEN 2 — Game Room
+═══════════════════════════════ -->
+<div id="s2" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;">
+    <div class="game-title" style="margin-bottom:32px;">📚 Game Room</div>
+
+    <div class="room-card">
+      <h2>Start a New Game</h2>
+      <p class="room-subtitle">Generate a code, then share it with other players.</p>
+
+      <button class="room-generate-btn" onclick="generateRoom()">Generate Room Code</button>
+
+      <div class="room-code-display" id="roomCodeDisplay">
+        <span class="rcd-label">Room Code</span>
+        <span class="rcd-code" id="roomCodeText">—</span>
+        <span class="rcd-hint">Share this with your players</span>
+      </div>
+
+      <div class="divider">or join existing</div>
+
+      <div class="join-row">
+        <input class="join-input" id="joinInput" type="text" maxlength="7" placeholder="ABC-123" autocomplete="off" oninput="formatRoomInput(this)">
+        <button class="join-btn" onclick="joinRoom()">Join →</button>
+      </div>
+
+      <div class="no-firebase-note" id="firebaseNote">
+        ⚠️ Firebase isn't configured yet — scores won't sync. Fill in your Firebase config in the &lt;script&gt; section to enable multiplayer.
+      </div>
+
+      <button class="next-btn" id="startScoringBtn" style="margin-top:20px;display:none;" onclick="startGame()">Start Scoring →</button>
+    </div>
+
+    <button class="back-link" onclick="goToScreen('s1')">← Back</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     SCREEN 3 — Scorecard
+═══════════════════════════════ -->
+<div id="s3" class="screen">
+
+  <header class="sc-header">
+    <div class="hdr-left">
+      <div class="player-avatar" id="avatar">?</div>
+      <div>
+        <div class="hdr-name" id="hdrName">Player</div>
+        <div class="hdr-room-chip">
+          <div class="sync-dot" id="syncDot"></div>
+          <span id="hdrRoom">—</span>
+        </div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="hdr-vp-label">Total VP</div>
+      <div class="hdr-vp-value" id="hdrTotal">0</div>
+    </div>
+  </header>
+
+  <!-- Books -->
+  <div class="section">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-left">
+          <span class="card-icon">📖</span>
+          <div><div class="card-title">Books</div><div class="card-rule">1 VP each — apartment &amp; backpack</div></div>
+        </div>
+        <div class="card-vp"><div class="card-vp-label">VP</div><div class="card-vp-value" id="booksVP">0</div></div>
+      </div>
+      <div class="counter-row">
+        <div class="counter-label">Books collected</div>
+        <div class="counter-btns">
+          <button class="cnt-btn" onclick="delta('books',-1)">−</button>
+          <div class="cnt-value" id="booksCount">0</div>
+          <button class="cnt-btn" onclick="delta('books',1)">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Little Projects -->
+  <div class="section">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-left">
+          <span class="card-icon">✅</span>
+          <div><div class="card-title">Little Projects</div><div class="card-rule">2 VP each — completed cards in scoring pile</div></div>
+        </div>
+        <div class="card-vp"><div class="card-vp-label">VP</div><div class="card-vp-value" id="projectsVP">0</div></div>
+      </div>
+      <div class="counter-row">
+        <div class="counter-label">Completed projects</div>
+        <div class="counter-btns">
+          <button class="cnt-btn" onclick="delta('projects',-1)">−</button>
+          <div class="cnt-value" id="projectsCount">0</div>
+          <button class="cnt-btn" onclick="delta('projects',1)">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Other Neat Stuff -->
+  <div class="section">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-left">
+          <span class="card-icon">✨</span>
+          <div><div class="card-title">Other Neat Stuff</div><div class="card-rule">VP as listed on each card</div></div>
+        </div>
+        <div class="card-vp"><div class="card-vp-label">VP</div><div class="card-vp-value" id="neatVP">0</div></div>
+      </div>
+      <div class="card-list" id="neatList"></div>
+      <div class="add-card-form" id="addCardForm">
+        <div class="form-row">
+          <input class="name-input" id="cardName" type="text" placeholder="Card name (optional)" autocomplete="off">
+          <input class="vp-input"   id="cardVP"   type="number" placeholder="VP" min="0" max="99">
+        </div>
+        <div class="form-btns">
+          <button class="confirm-btn" onclick="addNeatCard()">Add Card</button>
+          <button class="cancel-btn"  onclick="closeAddForm()">Cancel</button>
+        </div>
+      </div>
+      <button class="add-card-trigger" id="addTrigger" onclick="openAddForm()">+ Add Card</button>
+    </div>
+  </div>
+
+  <!-- Major Accomplishments -->
+  <div class="section">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-left">
+          <span class="card-icon">🏆</span>
+          <div><div class="card-title">Major Accomplishments</div><div class="card-rule">VP awarded — 1st or 2nd place each</div></div>
+        </div>
+        <div class="card-vp"><div class="card-vp-label">VP</div><div class="card-vp-value" id="majorVP">0</div></div>
+      </div>
+      <div class="ma-list">
+        <div class="ma-item"><div class="ma-label">Major Accomplishment 1</div><input class="ma-input" id="ma1" type="number" min="0" max="99" value="0" inputmode="numeric" oninput="refreshMA()"></div>
+        <div class="ma-item"><div class="ma-label">Major Accomplishment 2</div><input class="ma-input" id="ma2" type="number" min="0" max="99" value="0" inputmode="numeric" oninput="refreshMA()"></div>
+        <div class="ma-item"><div class="ma-label">Major Accomplishment 3</div><input class="ma-input" id="ma3" type="number" min="0" max="99" value="0" inputmode="numeric" oninput="refreshMA()"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Social Battery -->
+  <div class="section">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-left">
+          <span class="card-icon">🔋</span>
+          <div><div class="card-title">Social Battery</div><div class="card-rule">1 VP per 4 remaining pips</div></div>
+        </div>
+        <div class="card-vp"><div class="card-vp-label">VP</div><div class="card-vp-value" id="batteryVP">0</div></div>
+      </div>
+      <div class="battery-body">
+        <div class="battery-top">
+          <div class="battery-lbl">Pips remaining</div>
+          <div class="battery-stepper">
+            <button class="cnt-btn" onclick="deltaBattery(-1)">−</button>
+            <div class="battery-val" id="batteryVal">0</div>
+            <button class="cnt-btn" onclick="deltaBattery(1)">+</button>
+          </div>
+        </div>
+        <div class="pip-grid" id="pipGrid"></div>
+        <div class="battery-note" id="batteryNote">0 pips ÷ 4 = 0 VP</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tb-banner">
+    <strong>Tiebreaker</strong>
+    <p>Most books wins — your book count is tracked above!</p>
+  </div>
+  <div style="height:20px;"></div>
+</div>
+
+<!-- Bottom Bar -->
+<div id="bottomBar">
+  <button class="bar-btn" onclick="openSheet()">📊 Breakdown</button>
+  <button class="bar-btn" id="leaderboardBtn" onclick="openLeaderboard()" style="display:none;">🏅 Standings</button>
+  <div class="total-chip">
+    <div class="total-chip-lbl">Total VP</div>
+    <div class="total-chip-val" id="barTotal">0</div>
+  </div>
+</div>
+
+<!-- Breakdown Sheet -->
+<div id="breakdownOverlay" onclick="maybeCloseSheet(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Score Breakdown</div>
+    <div class="bd-row"><span class="bd-icon">📖</span><span class="bd-name">Books (<span id="bd-bkCt">0</span> × 1 VP)</span><span class="bd-val" id="bd-bkVP">0 VP</span></div>
+    <div class="bd-row"><span class="bd-icon">✅</span><span class="bd-name">Little Projects (<span id="bd-prCt">0</span> × 2 VP)</span><span class="bd-val" id="bd-prVP">0 VP</span></div>
+    <div class="bd-row"><span class="bd-icon">✨</span><span class="bd-name">Other Neat Stuff</span><span class="bd-val" id="bd-ntVP">0 VP</span></div>
+    <div class="bd-row"><span class="bd-icon">🏆</span><span class="bd-name">Major Accomplishments</span><span class="bd-val" id="bd-mjVP">0 VP</span></div>
+    <div class="bd-row"><span class="bd-icon">🔋</span><span class="bd-name">Social Battery (<span id="bd-batPips">0</span> pips)</span><span class="bd-val" id="bd-batVP">0 VP</span></div>
+    <div class="bd-total-strip">
+      <span class="bd-total-name" id="bd-pName">Player</span>
+      <span class="bd-total-val"  id="bd-total">0 VP</span>
+    </div>
+    <button class="share-btn" onclick="shareScore()">📤 Share Score</button>
+    <button class="reset-link" onclick="confirmReset()">↺ Reset scorecard</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  /* ══════════════════════════════════════════════
+     FIREBASE CONFIG
+     Replace the placeholder values below with your
+     actual Firebase project config after setup.
+  ══════════════════════════════════════════════ */
+  const FIREBASE_CONFIG = {
+    apiKey:            "PASTE_YOUR_API_KEY_HERE",
+    authDomain:        "PASTE_YOUR_PROJECT_ID.firebaseapp.com",
+    databaseURL:       "https://PASTE_YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+    projectId:         "PASTE_YOUR_PROJECT_ID",
+    storageBucket:     "PASTE_YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "PASTE_YOUR_SENDER_ID",
+    appId:             "PASTE_YOUR_APP_ID"
+  };
+
+  const FIREBASE_READY = !FIREBASE_CONFIG.apiKey.includes('PASTE');
+
+  let db = null;
+  if (FIREBASE_READY) {
+    try {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.database();
+    } catch(e) { console.warn('Firebase init failed', e); }
+  }
+
+  /* ── State ── */
+  const S = {
+    name: '', color: 'green', room: '',
+    playerId: '',   // sanitized name used as Firebase key
+    books: 0, projects: 0,
+    neat: [],       // [{id, name, vp}]
+    ma: [0,0,0],
+    battery: 0,
+  };
+
+  const COLOR_MAP = { green:'#3D7A37', blue:'#2563EB', red:'#DC2626', yellow:'#D97706' };
+  const BATT_MAX = 20;
+  let syncTimer = null;
+
+  /* ── Screen nav ── */
+  function goToScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0,0);
+  }
+
+  /* ── Screen 1 ── */
+  function pickColor(btn) {
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    S.color = btn.dataset.color;
+  }
+
+  function goToRoomScreen() {
+    const raw = document.getElementById('nameInput').value.trim();
+    S.name = raw || 'Player';
+    if (!FIREBASE_READY) {
+      document.getElementById('firebaseNote').classList.add('visible');
+    }
+    goToScreen('s2');
+  }
+
+  /* ── Screen 2 — Room ── */
+  function generateRoom() {
+    const chars = 'ABCDEFGHJKLMNPRSTUVWXYZ';
+    const digits = '23456789';
+    let code = '';
+    for (let i = 0; i < 3; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    code += '-';
+    for (let i = 0; i < 3; i++) code += digits[Math.floor(Math.random() * digits.length)];
+    S.room = code;
+    document.getElementById('roomCodeText').textContent = code;
+    document.getElementById('roomCodeDisplay').classList.add('visible');
+    document.getElementById('startScoringBtn').style.display = '';
+  }
+
+  function formatRoomInput(input) {
+    let v = input.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if (v.length > 3) v = v.slice(0,3) + '-' + v.slice(3,6);
+    input.value = v;
+    if (v.length >= 7) {
+      S.room = v;
+      document.getElementById('startScoringBtn').style.display = '';
+    }
+  }
+
+  function joinRoom() {
+    const v = document.getElementById('joinInput').value.trim().toUpperCase();
+    if (v.length < 5) { toast('Enter a valid room code'); return; }
+    S.room = v.includes('-') ? v : v.slice(0,3)+'-'+v.slice(3);
+    document.getElementById('startScoringBtn').style.display = '';
+    toast(`Joining room ${S.room}…`);
+  }
+
+  /* ── Start game ── */
+  function startGame() {
+    if (!S.room) { toast('Please generate or enter a room code'); return; }
+
+    // sanitize player ID for Firebase key
+    S.playerId = S.name.replace(/[.#$[\]\/]/g,'_').toLowerCase();
+
+    // Header
+    $('hdrName').textContent = S.name;
+    $('hdrRoom').textContent  = S.room;
+    $('avatar').textContent   = S.name[0].toUpperCase();
+    $('avatar').style.background = COLOR_MAP[S.color];
+
+    goToScreen('s3');
+    $('bottomBar').style.display = 'flex';
+    if (FIREBASE_READY && db) {
+      $('leaderboardBtn').style.display = '';
+    }
+
+    buildPips();
+    recalc();
+    pushToFirebase();
+  }
+
+  /* ── Score helpers ── */
+  function delta(field, d) {
+    S[field] = Math.max(0, S[field] + d);
+    if (field === 'books') {
+      $txt('booksCount', S.books); $txt('booksVP', S.books);
+    } else {
+      $txt('projectsCount', S.projects); $txt('projectsVP', S.projects * 2);
+    }
+    recalc(); scheduleSync();
+  }
+
+  function openAddForm() {
+    $('addCardForm').classList.add('open');
+    $('addTrigger').style.display = 'none';
+    $('cardVP').focus();
+  }
+  function closeAddForm() {
+    $('addCardForm').classList.remove('open');
+    $('addTrigger').style.display = '';
+    $('cardName').value = ''; $('cardVP').value = '';
+  }
+  function addNeatCard() {
+    const name = $('cardName').value.trim() || 'Neat Stuff';
+    const vp   = Math.max(0, parseInt($('cardVP').value) || 0);
+    S.neat.push({ id: Date.now(), name, vp });
+    renderNeat(); closeAddForm(); recalc(); scheduleSync();
+  }
+  function removeNeat(id) {
+    S.neat = S.neat.filter(c => c.id !== id);
+    renderNeat(); recalc(); scheduleSync();
+  }
+  function renderNeat() {
+    const list = $('neatList');
+    list.innerHTML = '';
+    S.neat.forEach(c => {
+      const el = document.createElement('div');
+      el.className = 'neat-item';
+      el.innerHTML = `<div class="neat-name">${esc(c.name)}</div><div class="neat-vp">${c.vp} VP</div><button class="remove-btn" onclick="removeNeat(${c.id})">✕</button>`;
+      list.appendChild(el);
+    });
+    $txt('neatVP', S.neat.reduce((s,c)=>s+c.vp,0));
+  }
+
+  function refreshMA() {
+    S.ma = [0,1,2].map(i => Math.max(0, parseInt($('ma'+(i+1)).value)||0));
+    $txt('majorVP', S.ma.reduce((a,b)=>a+b,0));
+    recalc(); scheduleSync();
+  }
+
+  /* ── Battery ── */
+  function buildPips() {
+    const grid = $('pipGrid'); grid.innerHTML = '';
+    for (let i = 0; i < BATT_MAX; i++) {
+      const p = document.createElement('div');
+      p.className='pip'; p.id=`pip-${i}`; p.onclick=()=>tapPip(i);
+      grid.appendChild(p);
+    }
+    renderPips();
+  }
+  function tapPip(idx) {
+    S.battery = (S.battery === idx+1) ? idx : idx+1;
+    refreshBattery();
+  }
+  function deltaBattery(d) {
+    S.battery = Math.min(BATT_MAX, Math.max(0, S.battery+d));
+    refreshBattery();
+  }
+  function refreshBattery() {
+    renderPips();
+    const vp = Math.floor(S.battery/4);
+    $txt('batteryVal', S.battery); $txt('batteryVP', vp);
+    $txt('batteryNote', `${S.battery} pips ÷ 4 = ${vp} VP`);
+    recalc(); scheduleSync();
+  }
+  function renderPips() {
+    for (let i=0;i<BATT_MAX;i++) {
+      const p = document.getElementById(`pip-${i}`);
+      if(p) p.classList.toggle('on', i < S.battery);
+    }
+  }
+
+  /* ── Totals ── */
+  function totals() {
+    const bk = S.books;
+    const pr = S.projects * 2;
+    const nt = S.neat.reduce((s,c)=>s+c.vp,0);
+    const mj = S.ma.reduce((a,b)=>a+b,0);
+    const bt = Math.floor(S.battery/4);
+    return { bk, pr, nt, mj, bt, total: bk+pr+nt+mj+bt };
+  }
+  function recalc() {
+    const t = totals();
+    $txt('hdrTotal', t.total); $txt('barTotal', t.total);
+  }
+
+  /* ── Firebase sync ── */
+  function scheduleSync() {
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(pushToFirebase, 800);
+  }
+
+  function pushToFirebase() {
+    if (!db || !S.room) return;
+    const t = totals();
+    const dot = $('syncDot');
+    dot.classList.add('syncing');
+
+    const roomKey = S.room.replace('-','_');
+    db.ref(`games/${roomKey}/players/${S.playerId}`).set({
+      name:      S.name,
+      color:     S.color,
+      books:     S.books,
+      projects:  S.projects,
+      neatCards: S.neat,
+      ma:        S.ma,
+      battery:   S.battery,
+      bkVP: t.bk, prVP: t.pr, ntVP: t.nt, mjVP: t.mj, btVP: t.bt,
+      totalVP:   t.total,
+      updatedAt: Date.now()
+    }).then(() => {
+      dot.classList.remove('syncing');
+    }).catch(e => {
+      dot.classList.remove('syncing');
+      console.warn('Sync failed', e);
+    });
+  }
+
+  /* ── Leaderboard ── */
+  function openLeaderboard() {
+    const url = `leaderboard.html?room=${S.room}`;
+    window.open(url, '_blank');
+  }
+
+  /* ── Breakdown sheet ── */
+  function openSheet() {
+    const t = totals();
+    $txt('bd-bkCt', S.books); $txt('bd-bkVP', t.bk+' VP');
+    $txt('bd-prCt', S.projects); $txt('bd-prVP', t.pr+' VP');
+    $txt('bd-ntVP', t.nt+' VP'); $txt('bd-mjVP', t.mj+' VP');
+    $txt('bd-batPips', S.battery); $txt('bd-batVP', t.bt+' VP');
+    $txt('bd-pName', S.name); $txt('bd-total', t.total+' VP');
+    $('breakdownOverlay').classList.add('open');
+  }
+  function maybeCloseSheet(e) {
+    if (e.target === $('breakdownOverlay')) $('breakdownOverlay').classList.remove('open');
+  }
+
+  /* ── Share ── */
+  function shareScore() {
+    const t = totals();
+    const lines = [
+      `📚 A Place for All My Books — Final Score`,``,
+      `Player: ${S.name}  |  Room: ${S.room}`,``,
+      `📖 Books              ${t.bk} VP  (${S.books} books)`,
+      `✅ Little Projects    ${t.pr} VP  (${S.projects} completed)`,
+      `✨ Other Neat Stuff   ${t.nt} VP`,
+      `🏆 Major Accomplishments  ${t.mj} VP`,
+      `🔋 Social Battery     ${t.bt} VP  (${S.battery} pips)`,
+      `──────────────────────`,
+      `TOTAL: ${t.total} VP`
+    ];
+    const text = lines.join('\n');
+    if (navigator.share) { navigator.share({ title:'My Score', text }); }
+    else if (navigator.clipboard) { navigator.clipboard.writeText(text).then(()=>toast('Copied to clipboard!')); }
+    else { toast(`Total: ${t.total} VP`); }
+  }
+
+  /* ── Reset ── */
+  function confirmReset() {
+    if (!confirm('Reset all scores to zero?')) return;
+    S.books=0; S.projects=0; S.neat=[]; S.ma=[0,0,0]; S.battery=0;
+    $txt('booksCount',0); $txt('booksVP',0);
+    $txt('projectsCount',0); $txt('projectsVP',0);
+    $('neatList').innerHTML=''; $txt('neatVP',0);
+    ['ma1','ma2','ma3'].forEach(id=>$(id).value=0); $txt('majorVP',0);
+    $txt('batteryVal',0); $txt('batteryVP',0);
+    $txt('batteryNote','0 pips ÷ 4 = 0 VP');
+    renderPips(); recalc(); pushToFirebase();
+    $('breakdownOverlay').classList.remove('open');
+    toast('Scorecard reset!');
+  }
+
+  /* ── Helpers ── */
+  const $ = id => document.getElementById(id);
+  function $txt(id, val) { const el=$(id); if(el) el.textContent=val; }
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function toast(msg) {
+    const t=$('toast'); t.textContent=msg; t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),2600);
+  }
+</script>
+</body>
+</html>

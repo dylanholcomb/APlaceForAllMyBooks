@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>A Place for All My Books — Standings</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --green-dark:  #2A5425;
+      --green-mid:   #3D7A37;
+      --green-light: #6AAD63;
+      --cream:       #F8F0DC;
+      --cream-dark:  #E8DAC0;
+      --amber:       #C4820A;
+      --text-dark:   #1E2D1B;
+      --text-mid:    #4A5A47;
+      --text-light:  #8A9A87;
+      --shadow:      rgba(42,84,37,.12);
+      --gold:   #F5C542;
+      --silver: #C0C0C0;
+      --bronze: #CD7F32;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--cream);
+      color: var(--text-dark);
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+      max-width: 520px;
+      margin: 0 auto;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── Entry Screen ── */
+    #entryScreen {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 32px 24px; text-align: center;
+    }
+    .logo { font-size: 44px; margin-bottom: 12px; }
+    .page-title {
+      font-family: 'Lora', serif; font-size: 26px; font-weight: 700;
+      color: var(--green-dark); line-height: 1.2; margin-bottom: 4px;
+    }
+    .page-sub {
+      font-family: 'Lora', serif; font-style: italic;
+      color: var(--text-light); font-size: 13px; margin-bottom: 36px;
+    }
+    .entry-card {
+      background: white; border-radius: 22px;
+      padding: 28px 24px 24px;
+      box-shadow: 0 6px 32px var(--shadow);
+      width: 100%; max-width: 360px;
+    }
+    .entry-card h2 { font-family: 'Lora', serif; font-size: 18px; color: var(--green-dark); margin-bottom: 8px; }
+    .entry-card p  { font-size: 13px; color: var(--text-light); margin-bottom: 22px; }
+    .room-input {
+      width: 100%; padding: 16px;
+      border: 2px solid var(--cream-dark); border-radius: 12px;
+      font-size: 22px; font-family: 'Lora', serif; font-weight: 700;
+      text-align: center; letter-spacing: .14em;
+      color: var(--text-dark); background: var(--cream);
+      text-transform: uppercase; outline: none; transition: border-color .2s;
+      margin-bottom: 14px;
+    }
+    .room-input:focus { border-color: var(--green-mid); }
+    .watch-btn {
+      width: 100%; padding: 15px;
+      background: var(--green-dark); color: white;
+      border: none; border-radius: 14px;
+      font-size: 16px; font-weight: 600; font-family: 'Lora', serif;
+      cursor: pointer; transition: background .2s;
+    }
+    .watch-btn:active { background: var(--green-mid); }
+    .no-firebase-warn {
+      margin-top: 16px; padding: 12px 14px;
+      background: rgba(196,130,10,.1); border-radius: 10px;
+      border-left: 3px solid var(--amber);
+      font-size: 12px; color: var(--amber); text-align: left;
+    }
+
+    /* ── Live Board ── */
+    #boardScreen { display: none; flex-direction: column; min-height: 100vh; padding-bottom: 32px; }
+
+    /* Header */
+    .lb-header {
+      background: var(--green-dark); color: white;
+      padding: 14px 18px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .lb-hdr-left h1 { font-family: 'Lora', serif; font-size: 16px; font-weight: 700; }
+    .lb-hdr-left p  { font-size: 11px; opacity: .65; margin-top: 2px; }
+    .room-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,.15); border-radius: 20px;
+      padding: 6px 12px;
+    }
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #6AAD63;
+      animation: livepulse 1.5s ease-in-out infinite;
+    }
+    @keyframes livepulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.85)} }
+    .room-badge span { font-family: 'Lora', serif; font-size: 15px; font-weight: 700; letter-spacing: .08em; }
+
+    /* Players count bar */
+    .players-bar {
+      padding: 10px 18px;
+      background: rgba(42,84,37,.05);
+      border-bottom: 1px solid var(--cream-dark);
+      font-size: 12px; color: var(--text-mid);
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    /* Podium (top 3) */
+    .podium-section { padding: 20px 16px 8px; }
+    .podium-title {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .09em; color: var(--text-light); margin-bottom: 14px; text-align: center;
+    }
+    .podium {
+      display: flex; align-items: flex-end; justify-content: center;
+      gap: 8px; margin-bottom: 8px;
+    }
+
+    .podium-slot {
+      display: flex; flex-direction: column; align-items: center;
+      flex: 1; max-width: 130px;
+    }
+    .podium-slot.rank-1 { order: 2; }
+    .podium-slot.rank-2 { order: 1; }
+    .podium-slot.rank-3 { order: 3; }
+
+    .podium-avatar {
+      width: 52px; height: 52px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 700; font-family: 'Lora', serif;
+      color: white; margin-bottom: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    }
+    .podium-slot.rank-1 .podium-avatar { width: 62px; height: 62px; font-size: 24px; }
+
+    .podium-name {
+      font-size: 13px; font-weight: 600; color: var(--text-dark);
+      text-align: center; margin-bottom: 4px;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .podium-vp {
+      font-family: 'Lora', serif; font-size: 18px; font-weight: 700; color: var(--green-dark);
+    }
+    .podium-slot.rank-1 .podium-vp { font-size: 22px; }
+
+    .podium-stand {
+      width: 100%; border-radius: 10px 10px 6px 6px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 8px 0;
+    }
+    .podium-stand-label {
+      font-family: 'Lora', serif; font-weight: 700;
+      font-size: 18px; color: white;
+    }
+    .rank-1 .podium-stand { background: var(--gold); height: 68px; }
+    .rank-2 .podium-stand { background: var(--silver); height: 52px; }
+    .rank-3 .podium-stand { background: var(--bronze); height: 40px; }
+    .rank-1 .podium-stand-label { color: #6B4B00; }
+    .rank-2 .podium-stand-label { color: #555; }
+    .rank-3 .podium-stand-label { color: #fff; }
+
+    /* Full rankings list */
+    .rankings-section { padding: 8px 16px 0; }
+    .rankings-title {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .09em; color: var(--text-light); margin-bottom: 10px;
+    }
+    .rank-card {
+      background: white; border-radius: 14px; margin-bottom: 10px;
+      box-shadow: 0 2px 10px var(--shadow);
+      overflow: hidden;
+    }
+    .rank-card.is-leader { box-shadow: 0 2px 10px var(--shadow), 0 0 0 2px var(--amber); }
+
+    .rank-row {
+      display: flex; align-items: center; padding: 14px 16px; gap: 12px;
+    }
+    .rank-number {
+      font-family: 'Lora', serif; font-size: 18px; font-weight: 700;
+      color: var(--text-light); min-width: 24px; text-align: center;
+    }
+    .rank-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; font-family: 'Lora', serif;
+      color: white; flex-shrink: 0;
+    }
+    .rank-info { flex: 1; min-width: 0; }
+    .rank-name {
+      font-size: 15px; font-weight: 600; color: var(--text-dark);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .rank-breakdown { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+    .rank-total {
+      font-family: 'Lora', serif; font-size: 22px; font-weight: 700;
+      color: var(--green-dark); text-align: right;
+    }
+    .rank-total-label { font-size: 10px; color: var(--text-light); text-align: right; }
+
+    /* Bars */
+    .bar-row { padding: 0 16px 12px; }
+    .bar-track {
+      height: 6px; background: var(--cream-dark); border-radius: 3px;
+      overflow: hidden; margin-top: 4px;
+    }
+    .bar-fill { height: 100%; border-radius: 3px; transition: width .4s ease; }
+
+    /* Tiebreaker chip */
+    .tb-chip {
+      display: inline-block;
+      background: rgba(196,130,10,.12); color: var(--amber);
+      font-size: 10px; font-weight: 600;
+      border-radius: 20px; padding: 2px 8px; margin-top: 3px;
+    }
+
+    /* Empty / loading */
+    .waiting {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 48px 32px; text-align: center; gap: 16px;
+    }
+    .waiting-icon { font-size: 48px; animation: gentle-bob 2s ease-in-out infinite; }
+    @keyframes gentle-bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+    .waiting h3 { font-family: 'Lora', serif; font-size: 18px; color: var(--green-dark); }
+    .waiting p  { font-size: 13px; color: var(--text-light); line-height: 1.6; }
+
+    /* Toast */
+    #toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-8px); background: var(--text-dark); color: white; padding: 9px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: all .25s; z-index: 500; white-space: nowrap; pointer-events: none; }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Back btn */
+    .back-btn {
+      margin: 16px auto 0;
+      display: block; width: calc(100% - 32px);
+      padding: 12px; background: transparent;
+      border: 2px solid var(--cream-dark); border-radius: 12px;
+      color: var(--text-mid); font-size: 14px; cursor: pointer;
+      font-family: 'Inter', sans-serif; text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════
+     ENTRY SCREEN
+═══════════════════════════════ -->
+<div id="entryScreen">
+  <div class="logo">🏅</div>
+  <div class="page-title">Live Standings</div>
+  <div class="page-sub">A Place for All My Books</div>
+
+  <div class="entry-card">
+    <h2>Watch a Game</h2>
+    <p>Enter your room code to see all players' scores in real-time.</p>
+
+    <input class="room-input" id="roomInput" type="text" maxlength="7"
+      placeholder="ABC-123" autocomplete="off"
+      oninput="formatEntry(this)" onkeydown="if(event.key==='Enter')watchRoom()">
+
+    <button class="watch-btn" onclick="watchRoom()">Watch Live →</button>
+
+    <div id="noFirebase" class="no-firebase-warn" style="display:none;">
+      ⚠️ Firebase isn't configured — live standings won't work. Paste your Firebase config into both HTML files to enable multiplayer.
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     BOARD SCREEN
+═══════════════════════════════ -->
+<div id="boardScreen">
+  <header class="lb-header">
+    <div class="lb-hdr-left">
+      <h1>📚 Live Standings</h1>
+      <p>A Place for All My Books</p>
+    </div>
+    <div class="room-badge">
+      <div class="live-dot"></div>
+      <span id="displayRoom">—</span>
+    </div>
+  </header>
+
+  <div class="players-bar" id="playersBar">⏳ Waiting for players…</div>
+
+  <div id="boardContent">
+    <!-- Populated by JS -->
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  /* ══════════════════════════════════════════════
+     FIREBASE CONFIG — must match scorecard.html
+  ══════════════════════════════════════════════ */
+  const FIREBASE_CONFIG = {
+    apiKey:            "PASTE_YOUR_API_KEY_HERE",
+    authDomain:        "PASTE_YOUR_PROJECT_ID.firebaseapp.com",
+    databaseURL:       "https://PASTE_YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+    projectId:         "PASTE_YOUR_PROJECT_ID",
+    storageBucket:     "PASTE_YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "PASTE_YOUR_SENDER_ID",
+    appId:             "PASTE_YOUR_APP_ID"
+  };
+
+  const FIREBASE_READY = !FIREBASE_CONFIG.apiKey.includes('PASTE');
+
+  let db = null;
+  if (FIREBASE_READY) {
+    try {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.database();
+    } catch(e) { console.warn('Firebase init failed', e); }
+  } else {
+    document.getElementById('noFirebase').style.display = 'block';
+  }
+
+  const COLOR_HEX = { green:'#3D7A37', blue:'#2563EB', red:'#DC2626', yellow:'#D97706' };
+
+  /* ── Room entry ── */
+  function formatEntry(input) {
+    let v = input.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if (v.length > 3) v = v.slice(0,3) + '-' + v.slice(3,6);
+    input.value = v;
+  }
+
+  function watchRoom() {
+    let code = document.getElementById('roomInput').value.trim().toUpperCase();
+    if (!code || code.length < 5) { toast('Enter a valid room code'); return; }
+    if (!code.includes('-')) code = code.slice(0,3)+'-'+code.slice(3);
+
+    if (!FIREBASE_READY || !db) {
+      toast('Firebase not configured — no live data');
+      return;
+    }
+
+    document.getElementById('entryScreen').style.display = 'none';
+    document.getElementById('boardScreen').style.display = 'flex';
+    document.getElementById('boardScreen').style.flexDirection = 'column';
+    document.getElementById('displayRoom').textContent = code;
+
+    subscribeToRoom(code);
+  }
+
+  // Auto-join from URL param ?room=ABC-123
+  (function() {
+    const params = new URLSearchParams(window.location.search);
+    const r = params.get('room');
+    if (r) {
+      document.getElementById('roomInput').value = r.toUpperCase();
+      // Wait for DOM + Firebase, then auto-watch
+      setTimeout(watchRoom, 100);
+    }
+  })();
+
+  /* ── Live subscription ── */
+  function subscribeToRoom(code) {
+    const roomKey = code.replace('-','_');
+    db.ref(`games/${roomKey}/players`).on('value', snap => {
+      const data = snap.val();
+      if (!data) {
+        renderWaiting(code);
+      } else {
+        const players = Object.values(data);
+        renderBoard(players, code);
+      }
+    });
+  }
+
+  function renderWaiting(code) {
+    const bar = document.getElementById('playersBar');
+    bar.textContent = '⏳ Waiting for players to join…';
+
+    document.getElementById('boardContent').innerHTML = `
+      <div class="waiting">
+        <div class="waiting-icon">📚</div>
+        <h3>Room ${code} is ready</h3>
+        <p>Waiting for players to open their scorecards and join. Tell everyone to enter <strong>${code}</strong> on their device.</p>
+      </div>
+    `;
+  }
+
+  /* ── Main render ── */
+  function renderBoard(players, code) {
+    // Sort: totalVP desc, then books desc (tiebreaker)
+    players.sort((a,b) => {
+      if (b.totalVP !== a.totalVP) return b.totalVP - a.totalVP;
+      return (b.books||0) - (a.books||0);
+    });
+
+    const maxVP = Math.max(1, players[0]?.totalVP || 1);
+
+    // Players bar
+    const pBar = document.getElementById('playersBar');
+    pBar.textContent = `${players.length} player${players.length !== 1 ? 's' : ''} in room ${code}`;
+
+    let html = '';
+
+    // Podium (top 1–3)
+    if (players.length >= 1) {
+      html += renderPodium(players);
+    }
+
+    // Full rankings
+    html += `<div class="rankings-section">`;
+    html += `<div class="rankings-title">All Players</div>`;
+    players.forEach((p, i) => {
+      html += renderRankCard(p, i+1, maxVP, players);
+    });
+    html += `</div>`;
+
+    // Back button
+    html += `<button class="back-btn" onclick="goBack()">← Change Room</button>`;
+    html += `<div style="height:20px;"></div>`;
+
+    document.getElementById('boardContent').innerHTML = html;
+  }
+
+  function renderPodium(players) {
+    const top = players.slice(0, 3);
+    // Pad to 3 slots
+    while (top.length < 3) top.push(null);
+
+    const slots = [top[0], top[1], top[2]]; // rank 1, 2, 3
+    const medals = ['🥇','🥈','🥉'];
+    const ranks  = [1, 2, 3];
+
+    let html = `<div class="podium-section">`;
+    html += `<div class="podium-title">Top Players</div>`;
+    html += `<div class="podium">`;
+
+    slots.forEach((p, i) => {
+      if (!p) return;
+      const rank = ranks[i];
+      const color = COLOR_HEX[p.color] || '#3D7A37';
+      html += `
+        <div class="podium-slot rank-${rank}">
+          <div class="podium-avatar" style="background:${color}">${p.name[0].toUpperCase()}</div>
+          <div class="podium-name">${esc(p.name)}</div>
+          <div class="podium-vp">${p.totalVP} <span style="font-size:.6em;font-weight:400;">VP</span></div>
+          <div class="podium-stand">
+            <span class="podium-stand-label">${medals[i]}</span>
+          </div>
+        </div>`;
+    });
+
+    html += `</div></div>`;
+    return html;
+  }
+
+  function renderRankCard(p, rank, maxVP, allPlayers) {
+    const color = COLOR_HEX[p.color] || '#3D7A37';
+    const isLeader = rank === 1;
+
+    // Check for tie
+    const tied = allPlayers.filter(op => op.totalVP === p.totalVP && op !== p);
+    const tieChip = tied.length > 0
+      ? `<span class="tb-chip">📖 ${p.books||0} books (tiebreaker)</span>`
+      : '';
+
+    const breakdown = [
+      p.bkVP ? `📖 ${p.bkVP}` : '',
+      p.prVP ? `✅ ${p.prVP}` : '',
+      p.ntVP ? `✨ ${p.ntVP}` : '',
+      p.mjVP ? `🏆 ${p.mjVP}` : '',
+      p.btVP ? `🔋 ${p.btVP}` : '',
+    ].filter(Boolean).join('  ');
+
+    const pct = maxVP > 0 ? Math.round((p.totalVP / maxVP) * 100) : 0;
+
+    return `
+      <div class="rank-card${isLeader ? ' is-leader' : ''}">
+        <div class="rank-row">
+          <div class="rank-number">${rank}</div>
+          <div class="rank-avatar" style="background:${color}">${p.name[0].toUpperCase()}</div>
+          <div class="rank-info">
+            <div class="rank-name">${esc(p.name)}</div>
+            <div class="rank-breakdown">${breakdown || '—'}</div>
+            ${tieChip}
+          </div>
+          <div>
+            <div class="rank-total">${p.totalVP}</div>
+            <div class="rank-total-label">VP</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${pct}%;background:${color};opacity:.7;"></div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function goBack() {
+    if (db) {
+      // detach listeners
+      const code = document.getElementById('displayRoom').textContent;
+      const roomKey = code.replace('-','_');
+      db.ref(`games/${roomKey}/players`).off();
+    }
+    document.getElementById('boardScreen').style.display = 'none';
+    document.getElementById('entryScreen').style.display = 'flex';
+  }
+
+  /* ── Helpers ── */
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 2600);
+  }
+</script>
+</body>
+</html>
